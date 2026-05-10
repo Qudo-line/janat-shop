@@ -18,21 +18,18 @@
     <div class="container">
         <h2>إضافة طلب جديد 🛍️</h2>
         <input type="number" id="pPrice" placeholder="حدد السعر (د.ع)">
-        
         <select id="pCategory">
             <option value="bags">حقائب</option>
             <option value="medal">ميداليات</option>
             <option value="acs">إكسسوارات</option>
             <option value="home">منزلية</option>
         </select>
-
         <label class="file-label">
             اضغط هنا لرفع الصورة من المعرض 🖼️
             <input type="file" id="pImgFile" accept="image/*" style="display: none;">
         </label>
         <span id="status">لم يتم اختيار صورة بعد</span>
-
-        <button class="add-btn" onclick="saveToFirestore()">إرسال للمتجر (+)</button>
+        <button class="add-btn" id="submitBtn">إرسال للمتجر (+)</button>
     </div>
 
     <hr style="margin: 40px 0; border: 0.5px solid #e94560">
@@ -41,7 +38,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw",
@@ -55,66 +52,46 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // نظام الحماية بكلمة المرور
-        const myPassword = "2468";
-        let entry = prompt("يرجى إدخال رمز الدخول للوحة التحكم:");
-        if (entry !== myPassword) {
-            alert("الرمز خطأ!");
-            window.location.href = "index.html";
-        }
+        // حماية بسيطة
+        if (prompt("رمز الدخول:") !== "2468") window.location.href = "index.html";
 
-        // تحديث النص عند اختيار صورة
         document.getElementById("pImgFile").onchange = (e) => {
-            if (e.target.files.length > 0) {
-                document.getElementById("status").innerText = "تم اختيار: " + e.target.files[0].name;
-            }
+            if (e.target.files.length > 0) document.getElementById("status").innerText = "تم اختيار الصورة ✅";
         };
 
-        // وظيفة الحفظ مع ضغط الصورة التلقائي لمنع التعليق
-        window.saveToFirestore = async () => {
+        // وظيفة الإضافة النهائية
+        document.getElementById("submitBtn").onclick = async () => {
             const file = document.getElementById("pImgFile").files[0];
             const price = document.getElementById("pPrice").value;
             const category = document.getElementById("pCategory").value;
+            const status = document.getElementById("status");
 
-            if (!file || !price) return alert("يرجى تحديد السعر واختيار صورة");
+            if (!file || !price) return alert("اكمل البيانات أولاً");
 
-            document.getElementById("status").innerText = "جاري معالجة الصورة...";
+            status.innerText = "جاري الرفع... انتظر ثواني";
             
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = async () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 600;
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH;
-                    canvas.height = img.height * scaleSize;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
-                    try {
-                        document.getElementById("status").innerText = "جاري الحفظ في السيرفر...";
-                        await addDoc(collection(db, "products"), {
-                            price: price,
-                            category: category,
-                            img: compressedBase64,
-                            date: new Date()
-                        });
-                        alert("تمت الإضافة بنجاح!");
-                        location.reload();
-                    } catch (err) {
-                        alert("حدث خطأ في الاتصال");
-                        console.error(err);
-                    }
-                };
+            reader.onload = async (e) => {
+                try {
+                    await addDoc(collection(db, "products"), {
+                        price: price,
+                        category: category,
+                        img: e.target.result,
+                        date: new Date()
+                    });
+                    alert("تمت الإضافة بنجاح!");
+                    document.getElementById("pPrice").value = "";
+                    document.getElementById("pImgFile").value = "";
+                    status.innerText = "لم يتم اختيار صورة بعد";
+                } catch (err) {
+                    alert("خطأ في الاتصال");
+                }
             };
         };
 
-        // عرض المنشورات للإدارة
-        onSnapshot(collection(db, "products"), (snapshot) => {
+        // عرض المنشورات للحذف والتعديل
+        onSnapshot(query(collection(db, "products"), orderBy("date", "desc")), (snapshot) => {
             const adminList = document.getElementById("admin-list");
             adminList.innerHTML = "";
             snapshot.forEach((productDoc) => {
@@ -126,27 +103,17 @@
                     <img src="${item.img}" style="width: 50px; height: 50px; border-radius: 5px; object-fit: cover;">
                     <div style="flex: 1; margin-right: 10px; text-align: right;">
                         <p style="margin: 0; font-size: 14px;">السعر: ${item.price}</p>
-                        <small style="color: #888;">القسم: ${item.category}</small>
                     </div>
                     <div>
-                        <button onclick="editItem('${id}', '${item.price}')" style="background: #27ae60; color: white; border: none; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size:12px;">تعديل</button>
-                        <button onclick="deleteItem('${id}')" style="background: #e74c3c; color: white; border: none; padding: 5px 8px; border-radius: 5px; cursor: pointer; margin-right: 3px; font-size:12px;">حذف</button>
+                        <button onclick="deleteItem('${id}')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">حذف</button>
                     </div>
                 `;
                 adminList.appendChild(card);
             });
         });
 
-        // وظيفة الحذف والتعديل
         window.deleteItem = async (id) => {
-            if (confirm("حذف هذا المنشور؟")) await deleteDoc(doc(db, "products", id));
-        };
-
-        window.editItem = async (id, oldPrice) => {
-            const newPrice = prompt("أدخل السعر الجديد:", oldPrice);
-            if (newPrice && newPrice !== oldPrice) {
-                await updateDoc(doc(db, "products", id), { price: newPrice });
-            }
+            if (confirm("حذف؟")) await deleteDoc(doc(db, "products", id));
         };
     </script>
 </body>
