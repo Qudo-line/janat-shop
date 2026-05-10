@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>لوحة التحكم بالمتجر</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #1a1a2e;
+        color: white;
+        text-align: center;
+        padding: 20px;
+      }
+      .container {
+        max-width: 400px;
+        margin: auto;
+        background: #16213e;
+        padding: 25px;
+        border-radius: 15px;
+        border: 1px solid #e94560;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border: none;
+        box-sizing: border-box;
+        background: #f0f0f0;
+      }
+      .file-label {
+        display: block;
+        background: #0f3460;
+        padding: 20px;
+        cursor: pointer;
+        border-radius: 10px;
+        border: 2px dashed #e94560;
+        margin: 15px 0;
+      }
+      .add-btn {
+        background: #e94560;
+        color: white;
+        border: none;
+        padding: 15px;
+        width: 100%;
+        cursor: pointer;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 18px;
+      }
+      #status {
+        color: #27ae60;
+        font-size: 14px;
+        margin-top: 5px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>إضافة طلب جديد 🛍️</h2>
+
+      <input type="number" id="pPrice" placeholder="حدد السعر (د.ع)" />
+
+      <select id="pCategory">
+        <option value="bags">حقائب</option>
+        <option value="medal">ميداليات</option>
+        <option value="acs">إكسسوارات</option>
+        <option value="home">منزلية</option>
+      </select>
+
+      <label class="file-label">
+        اضغط هنا لرفع الصورة من المعرض 🖼️
+        <input
+          type="file"
+          id="pImgFile"
+          accept="image/*"
+          style="display: none"
+        />
+      </label>
+      <span id="status">لم يتم اختيار صورة بعد</span>
+
+      <button class="add-btn" onclick="saveToFirestore()">
+        إرسال للمتجر (+)
+      </button>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw",
+        authDomain: "janat-shop.firebaseapp.com",
+        projectId: "janat-shop",
+        storageBucket: "janat-shop.firebasestorage.app",
+        messagingSenderId: "940262782144",
+        appId: "1:940262782144:web:f0ef11cb908d212795e925",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // تحديث النص عند اختيار صورة
+      document.getElementById("pImgFile").onchange = (e) => {
+        if (e.target.files.length > 0) {
+          document.getElementById("status").innerText =
+            "تم اختيار: " + e.target.files[0].name;
+        }
+      };
+
+      window.saveToFirestore = async () => {
+        const file = document.getElementById("pImgFile").files[0];
+        const price = document.getElementById("pPrice").value;
+        const category = document.getElementById("pCategory").value;
+
+        if (!file || !price) {
+          return alert("يرجى تحديد السعر واختيار صورة");
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+          const base64Image = reader.result; // الصورة صارت نص
+
+          try {
+            document.getElementById("status").innerText =
+              "جاري الحفظ... انتظر ثواني";
+            await addDoc(collection(db, "products"), {
+              price: price,
+              category: category,
+              img: base64Image, // خزنّا الصورة كنص بالداتابيز
+              date: new Date(),
+            });
+            alert("تمت الإضافة بنجاح!");
+            location.reload();
+          } catch (e) {
+            alert("حدث خطأ، تأكد من اتصال الانترنت");
+          }
+        };
+      };
+      // رمز الدخول السري (تقدر تغيره لأي رقم تحبه)
+      const myPassword = "2468";
+
+      let entry = prompt("يرجى إدخال رمز الدخول للوحة التحكم:");
+
+      if (entry !== myPassword) {
+        alert("الرمز خطأ! سيتم توجيهك للموقع الرئيسي.");
+        window.location.href = "index.html"; // يطرده للموقع الرئيسي
+      }
+    </script>
+    <hr style="margin: 40px 0; border: 0.5px solid #e94560" />
+    <h3>إدارة المنشورات الحالية 🛠️</h3>
+    <div id="admin-list" style="display: grid; gap: 15px; padding: 10px"></div>
+
+    <script type="module">
+      // هذا الكود يوضع داخل الـ script type="module" الموجود أصلاً
+      import {
+        onSnapshot,
+        doc,
+        updateDoc,
+        deleteDoc,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      const adminList = document.getElementById("admin-list");
+
+      // جلب المنتجات وعرضها للإدارة
+      onSnapshot(collection(db, "products"), (snapshot) => {
+        adminList.innerHTML = "";
+        snapshot.forEach((productDoc) => {
+          const item = productDoc.data();
+          const id = productDoc.id;
+
+          const card = document.createElement("div");
+          card.style =
+            "background: #1a1a2e; padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #333;";
+          card.innerHTML = `
+                <img src="${item.img}" style="width: 50px; height: 50px; border-radius: 5px; object-fit: cover;">
+                <div style="flex: 1; margin-right: 10px; text-align: right;">
+                    <p style="margin: 0; font-size: 14px;">السعر: ${item.price}</p>
+                    <small style="color: #888;">القسم: ${item.category}</small>
+                </div>
+                <div>
+                    <button onclick="editItem('${id}', '${item.price}')" style="background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">تعديل السعر</button>
+                    <button onclick="deleteItem('${id}')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-right: 5px;">حذف</button>
+                </div>
+            `;
+          adminList.appendChild(card);
+        });
+      });
+
+      // وظيفة الحذف
+      window.deleteItem = async (id) => {
+        if (confirm("هل أنت متأكد من حذف هذا المنشور؟")) {
+          await deleteDoc(doc(db, "products", id));
+          alert("تم الحذف");
+        }
+      };
+
+      // وظيفة تعديل السعر
+      window.editItem = async (id, oldPrice) => {
+        const newPrice = prompt("أدخل السعر الجديد:", oldPrice);
+        if (newPrice && newPrice !== oldPrice) {
+          await updateDoc(doc(db, "products", id), { price: newPrice });
+          alert("تم تحديث السعر");
+        }
+      };
+    </script>
+  </body>
+</html>
