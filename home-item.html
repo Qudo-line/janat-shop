@@ -24,21 +24,6 @@
     <hr />
     <section class="sell-home-item">
       <p class="sell-home-item-title">قسم المواد المنزلية</p>
-      
-      <div class="home-item-section">
-        <div class="sell-card-home-item">
-          <img src="img/home-item1.jpeg" alt="اساور الاصدقاء" />
-          <p class="price">30000 دينار عراقي</p>
-        </div>
-        <div class="sell-card-home-item">
-          <img src="img/home-item2.jpeg" alt="اساور" />
-          <p class="price">10000 دينار عراقي</p>
-        </div>
-        <div class="sell-card-home-item">
-          <img src="img/home-item3.jpeg" alt="اسوارة" />
-          <p class="price">10000 دينار عراقي</p>
-        </div>
-      </div>
 
       <div id="home-container" class="home-item-section"></div>
 
@@ -71,7 +56,7 @@
       // التعديل هنا: البحث عن قسم home بدلاً من medal
       const q = query(
         collection(db, "products"),
-        where("category", "==", "home"), 
+        where("category", "==", "home"),
       );
 
       // التعديل هنا: استخدام الحاوية الصحيحة الموجودة في HTML فوق
