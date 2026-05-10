@@ -62,10 +62,11 @@
           <p class="price">4000 دينار عراقي</p>
         </div>
       </div>
+      <div id="medal-container" class="medal-section"></div>
       <h1 class="note1">ملاحظة:</h1>
       <h2 class="note2">يتغير السعر حسب الحجم ونوع الخرز</h2>
     </section>
-    <div id="medal-container" class="medal-section"></div>
+
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
       import {
@@ -91,16 +92,16 @@
         where("category", "==", "medal"),
       );
       const container = document.getElementById("medal-container");
+      // انقل هذا السطر ليكون فوق سطر "ملاحظة" في الـ HTML
+      // <div id="medal-container" class="medal-section"></div>
 
       onSnapshot(q, (snapshot) => {
         container.innerHTML = "";
         snapshot.forEach((doc) => {
           const item = doc.data();
           container.innerHTML += `
-            <div class="sell-card-medal">
-                <img src="${item.img}">
-                <p>السعر: ${item.price}</p>
-            </div>
+            <div class="sell-card-medal"> <img src="${item.img}">
+                <p class="price">السعر: ${item.price} دينار عراقي</p> </div>
         `;
         });
       });
