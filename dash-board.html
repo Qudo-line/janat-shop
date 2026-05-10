@@ -1,211 +1,104 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>لوحة التحكم | متجر جنات</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        background: #1a1a2e;
-        color: white;
-        text-align: center;
-        padding: 20px;
-      }
-      .container {
-        max-width: 400px;
-        margin: auto;
-        background: #16213e;
-        padding: 25px;
-        border-radius: 15px;
-        border: 2px solid #e94560;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 12px;
-        margin: 10px 0;
-        border-radius: 8px;
-        border: none;
-      }
-      .add-btn {
-        background: #e94560;
-        color: white;
-        border: none;
-        padding: 15px;
-        width: 100%;
-        cursor: pointer;
-        border-radius: 8px;
-        font-weight: bold;
-      }
-      .admin-card {
-        background: #0f3460;
-        padding: 10px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        margin-top: 10px;
-        border: 1px solid #333;
-        justify-content: space-between;
-      }
-      .admin-card img {
-        width: 50px;
-        height: 50px;
-        border-radius: 5px;
-        object-fit: cover;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h2>إضافة منتج جديد 🛍️</h2>
-      <input type="number" id="pPrice" placeholder="السعر" />
-      <select id="pCategory">
-        <option value="bags">قسم الحقائب</option>
-        <option value="medal">قسم الميداليات</option>
-        <option value="acs">قسم الإكسسوارات</option>
-        <option value="home">المواد المنزلية</option>
-      </select>
-      <input type="file" id="pImgFile" accept="image/*" />
-      <p id="status" style="font-weight: bold">جاهز</p>
-      <button class="add-btn" id="sendBtn">رفع للقسم المختار</button>
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم - إضافة منتجات</title>
+    </head>
+<body>
+
+    <div class="admin-container">
+        <h2>🛍️ إضافة منتج جديد</h2>
+        <input type="number" id="price-input" placeholder="السعر">
+        <select id="category-select">
+            <option value="medal">قسم الميداليات</option>
+            <option value="acs">قسم الإكسسوارات</option>
+            <option value="bags">قسم الحقائب</option>
+            <option value="home-item">قسم المنزل</option>
+        </select>
+        <input type="file" id="file-input" accept="image/*">
+        <button id="upload-btn">رفع للقسم المختار</button>
     </div>
 
-    <h3 style="margin-top: 20px">إدارة المنشورات 🛠️</h3>
-    <div id="admin-list" style="max-width: 400px; margin: auto"></div>
-
     <script type="module">
-            import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-            import {
-              getFirestore,
-              collection,
-              addDoc,
-              onSnapshot,
-              query,
-              orderBy,
-              doc,
-              deleteDoc,
-            } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-            const firebaseConfig = {
-              apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw",
-              authDomain: "janat-shop.firebaseapp.com",
-              projectId: "janat-shop",
-              storageBucket: "janat-shop.firebasestorage.app",
-              messagingSenderId: "940262782144",
-              appId: "1:940262782144:web:f0ef11cb908d212795e925",
-            };
+        // ضع هنا Firebase Config الخاص بك (الموجود في صورك السابقة)
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", 
+            authDomain: "janat-shop.firebaseapp.com",
+            projectId: "janat-shop",
+            storageBucket: "janat-shop.appspot.com",
+            messagingSenderId: "940262782144",
+            appId: "1:940262782144:web:f0ef11cb908d212795e925"
+        };
 
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-            // --- دالة الرفع المعدلة ---
-      // عند الضغط على زر "رفع للقسم المختار"
-      document.getElementById("upload-btn").onclick = function() {
-          const file = document.getElementById("file-input").files[0];
-          const price = document.getElementById("price-input").value;
-          const category = document.getElementById("category-select").value;
-
-          if (!file || !price) {
-              alert("يرجى ملء كافة الحقول");
-              return;
-          }
-
-          // استدعاء دالة الضغط اللي كتبتها
-          compressImage(file, async (compressedBase64) => {
-              try {
-                  console.log("جاري الرفع...");
-
-                  // هنا الربط الحقيقي: نستخدم compressedBase64 بالرفع
-                  await addDoc(collection(db, "products"), {
-                      img: compressedBase64, // هسة راح يرفع النسخة الصغيرة
-                      price: price,
-                      category: category,
-                      timestamp: serverTimestamp()
-                  });
-
-                  alert("تم الرفع بنجاح!");
-                  location.reload(); // تحديث الصفحة لرؤية المنتج الجديد
-              } catch (error) {
-                  console.error("خطأ بالرفع: ", error);
-                  alert("فشل الرفع: " + error.message);
-              }
-          });
-      };
-
-              reader.onerror = () => {
-                statusLabel.innerText = "فشل قراءة ملف الصورة!";
-                statusLabel.style.color = "red";
-              };
-
-            // --- عرض المنشورات ---
-            onSnapshot(
-              query(collection(db, "products"), orderBy("date", "desc")),
-              (snapshot) => {
-                const list = document.getElementById("admin-list");
-                list.innerHTML = "";
-                snapshot.forEach((pDoc) => {
-                  const item = pDoc.data();
-                  list.innerHTML += `
-                      <div class="admin-card">
-                          <img src="${item.img}">
-                          <span>${item.price} - ${item.category}</span>
-                          <button onclick="deleteItem('${pDoc.id}')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">حذف</button>
-                      </div>`;
-                });
-              },
-            );
-
-            // --- دالة الحذف ---
-            window.deleteItem = async (id) => {
-              if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-                try {
-                  await deleteDoc(doc(db, "products", id));
-                } catch (error) {
-                  alert("خطأ في الحذف: " + error.message);
-                }
-              }
-            };
-            // دالة لضغط الصورة قبل تحويلها لـ Base64
-            function compressImage(file, callback) {
-              const reader = new FileReader();
-              reader.readAsDataURL(file);
-              reader.onload = (event) => {
+        // --- 1. دالة ضغط الصور (لحل مشكلة الحجم) ---
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
                 const img = new Image();
                 img.src = event.target.result;
                 img.onload = () => {
-                  const canvas = document.createElement("canvas");
-                  const MAX_WIDTH = 800; // تصغير العرض لـ 800 بكسل كحد أقصى
-                  let width = img.width;
-                  let height = img.height;
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // تصغير العرض لتقليل الحجم
+                    let width = img.width;
+                    let height = img.height;
 
-                  if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                  }
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
 
-                  canvas.width = width;
-                  canvas.height = height;
-                  const ctx = canvas.getContext("2d");
-                  ctx.drawImage(img, 0, 0, width, height);
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
 
-                  // تحويل الصورة لـ Base64 بجودة مضغوطة (0.7 يعني 70% من الجودة الأصلية)
-                  const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
-                  callback(compressedBase64);
+                    // تحويل الصورة لـ Base64 مضغوط (جودة 0.6 كافية جداً)
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                    callback(compressedBase64);
                 };
-              };
+            };
+        }
+
+        // --- 2. دالة الرفع عند الضغط على الزر ---
+        document.getElementById("upload-btn").onclick = function() {
+            const fileInput = document.getElementById("file-input");
+            const file = fileInput.files[0];
+            const price = document.getElementById("price-input").value;
+            const category = document.getElementById("category-select").value;
+
+            if (!file || !price) {
+                alert("يرجى ملء كافة الحقول واختيار صورة");
+                return;
             }
 
-            // عند الضغط على زر "رفع للقسم المختار"
-            document.getElementById("upload-btn").onclick = function () {
-              const file = document.getElementById("file-input").files[0];
-              if (file) {
-                compressImage(file, (compressedBase64) => {
-                  // هنا تحط كود الـ addDoc مالتك وتستخدم compressedBase64 بدلاً من الملف الأصلي
-                  console.log("تم ضغط الصورة، الحجم الجديد جاهز للرفع!");
-                  // كود الرفع الخاص بك يكمل هنا...
-                });
-              }
-            };
+            console.log("جاري معالجة الصورة...");
+
+            // استدعاء الضغط أولاً
+            compressImage(file, async (compressedBase64) => {
+                try {
+                    // الرفع للفايربيس باستخدام النسخة المضغوطة
+                    await addDoc(collection(db, "products"), {
+                        img: compressedBase64, 
+                        price: price,
+                        category: category,
+                        timestamp: serverTimestamp()
+                    });
+
+                    alert("تم الرفع بنجاح!");
+                    location.reload(); 
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    alert("فشل الرفع: " + error.message);
+                }
+            });
+        };
     </script>
-  </body>
+</body>
 </html>
