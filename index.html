@@ -93,5 +93,55 @@
     <section class="foter">
       <p class="foter-title">صنع بواسطة قسور</p>
     </section>
+    <div id="products-grid"></div>
+
+    <script type="module">
+      // 1. استيراد المكتبات (تأكد من كتابتها بهذا الشكل داخل الـ module)
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        onSnapshot,
+        query,
+        orderBy,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      // 2. إعدادات Firebase مالتك
+      const firebaseConfig = {
+        apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw",
+        authDomain: "janat-shop.firebaseapp.com",
+        projectId: "janat-shop",
+        storageBucket: "janat-shop.firebasestorage.app",
+        messagingSenderId: "940262782144",
+        appId: "1:940262782144:web:f0ef11cb908d212795e925",
+      };
+
+      // 3. تشغيل Firebase والجلب
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const productsContainer = document.getElementById("products-grid");
+
+      // جلب البيانات وعرضها تلقائياً
+      onSnapshot(
+        query(collection(db, "products"), orderBy("date", "desc")),
+        (snapshot) => {
+          productsContainer.innerHTML = "";
+          snapshot.forEach((doc) => {
+            const item = doc.data();
+            productsContainer.innerHTML += `
+        <div class="product-card">
+          <img src="${item.img}" alt="product" style="width:100%; border-radius:10px;">
+          <h3 style="color:#e94560;">السعر: ${item.price} د.ع</h3>
+          <p>القسم: ${item.category}</p>
+          <button onclick="window.open('https://wa.me/9647800000000?text=اريد طلب منتج سعره: ${item.price}')" 
+                  style="background:#27ae60; color:white; border:none; padding:10px; width:100%; border-radius:5px; cursor:pointer;">
+            اطلب الآن عبر واتساب
+          </button>
+        </div>
+      `;
+          });
+        },
+      );
+    </script>
   </body>
 </html>
