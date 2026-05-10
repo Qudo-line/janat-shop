@@ -23,7 +23,7 @@
             <option value="home">المواد المنزلية</option>
         </select>
         <input type="file" id="pImgFile" accept="image/*">
-        <p id="status">جاهز</p>
+        <p id="status" style="font-weight: bold;">جاهز</p>
         <button class="add-btn" id="sendBtn">رفع للقسم المختار</button>
     </div>
 
@@ -46,33 +46,76 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // --- دالة الرفع المعدلة ---
         document.getElementById("sendBtn").onclick = async () => {
             const price = document.getElementById("pPrice").value;
             const file = document.getElementById("pImgFile").files[0];
             const cat = document.getElementById("pCategory").value;
-            if (!price || !file) return alert("أكمل البيانات");
+            const statusLabel = document.getElementById("status");
 
-            document.getElementById("status").innerText = "جاري الرفع...";
+            if (!price || !file) return alert("أكمل البيانات (السعر والصورة)");
+
+            statusLabel.innerText = "جاري الرفع... انتظر قليلاً ⏳";
+            statusLabel.style.color = "#ffcc00";
+
             const reader = new FileReader();
             reader.readAsDataURL(file);
+            
             reader.onload = async (e) => {
-                await addDoc(collection(db, "products"), { price, category: cat, img: e.target.result, date: new Date() });
-                alert("تم الرفع بنجاح!");
-                location.reload();
+                try {
+                    // الرفع الفعلي للفايربيس
+                    const docRef = await addDoc(collection(db, "products"), { 
+                        price: price, 
+                        category: cat, 
+                        img: e.target.result, 
+                        date: new Date() 
+                    });
+                    
+                    console.log("تم الرفع بالرمز: ", docRef.id);
+                    statusLabel.innerText = "تم الرفع بنجاح! ✅ الرمز: " + docRef.id;
+                    statusLabel.style.color = "#00ff00";
+                    alert("تمت الإضافة بنجاح!");
+                    
+                    // تحديث الصفحة لرؤية النتائج
+                    setTimeout(() => { location.reload(); }, 1000);
+                } catch (error) {
+                    console.error("خطأ في الرفع: ", error);
+                    statusLabel.innerText = "فشل الرفع: " + error.message;
+                    statusLabel.style.color = "red";
+                }
+            };
+
+            reader.onerror = () => {
+                statusLabel.innerText = "فشل قراءة ملف الصورة!";
+                statusLabel.style.color = "red";
             };
         };
 
+        // --- عرض المنشورات ---
         onSnapshot(query(collection(db, "products"), orderBy("date", "desc")), (snapshot) => {
             const list = document.getElementById("admin-list");
             list.innerHTML = "";
             snapshot.forEach((pDoc) => {
                 const item = pDoc.data();
-                list.innerHTML += `<div class="admin-card"><img src="${item.img}"><span>${item.price} - ${item.category}</span>
-                <button onclick="deleteItem('${pDoc.id}')" style="background:red; color:white; border:none; padding:5px; border-radius:5px; cursor:pointer;">حذف</button></div>`;
+                list.innerHTML += `
+                <div class="admin-card">
+                    <img src="${item.img}">
+                    <span>${item.price} - ${item.category}</span>
+                    <button onclick="deleteItem('${pDoc.id}')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">حذف</button>
+                </div>`;
             });
         });
 
-        window.deleteItem = async (id) => { if(confirm("حذف؟")) await deleteDoc(doc(db, "products", id)); };
+        // --- دالة الحذف ---
+        window.deleteItem = async (id) => { 
+            if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+                try {
+                    await deleteDoc(doc(db, "products", id));
+                } catch (error) {
+                    alert("خطأ في الحذف: " + error.message);
+                }
+            }
+        };
     </script>
 </body>
 </html>
