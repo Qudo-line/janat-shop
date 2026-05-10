@@ -231,12 +231,14 @@ hr {
   transition: transform 0.3s;
 }
 
+/* التعديل هنا لضمان توازن حجم الصور */
 .sell-card img,
 .sell-card-medal img,
 .sell-card-acs img,
 .sell-card-home-item img {
   width: 100%;
-  height: auto;
+  height: 250px;       /* ضيف هذا الطول الثابت */
+  object-fit: cover;   /* ضيف هذا السطر حتى الصورة ما تنمغّط */
   border-radius: 10px;
   margin-bottom: 10px;
   transition: transform 0.3s;

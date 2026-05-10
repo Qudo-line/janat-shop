@@ -2,35 +2,37 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
+    <title>لوحة التحكم | متجر جنات</title>
     <style>
         body { font-family: sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 20px; }
-        .container { max-width: 400px; margin: auto; background: #16213e; padding: 25px; border-radius: 15px; border: 1px solid #e94560; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; box-sizing: border-box; background: #f0f0f0; color: black; }
-        .file-label { display: block; background: #0f3460; padding: 20px; cursor: pointer; border-radius: 10px; border: 2px dashed #e94560; margin: 15px 0; }
+        .container { max-width: 400px; margin: auto; background: #16213e; padding: 25px; border-radius: 15px; border: 2px solid #e94560; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; }
         .add-btn { background: #e94560; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; border-radius: 8px; font-weight: bold; }
+        .admin-card { background: #0f3460; padding: 10px; border-radius: 10px; display: flex; align-items: center; margin-top: 10px; border: 1px solid #333; justify-content: space-between; }
+        .admin-card img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
     </style>
 </head>
 <body>
-
     <div class="container">
         <h2>إضافة منتج جديد 🛍️</h2>
-        <input type="number" id="pPrice" placeholder="السعر (د.ع)">
+        <input type="number" id="pPrice" placeholder="السعر">
         <select id="pCategory">
-            <option value="bags">حقائب</option>
-            <option value="medal">ميداليات</option>
+            <option value="bags">قسم الحقائب</option>
+            <option value="medal">قسم الميداليات</option>
+            <option value="acs">قسم الإكسسوارات</option>
+            <option value="home">المواد المنزلية</option>
         </select>
-        <label class="file-label">
-            اختر صورة المنتج 🖼️
-            <input type="file" id="pImgFile" accept="image/*" style="display: none;">
-        </label>
-        <span id="status" style="display:block; margin-bottom:10px;">لم يتم اختيار صورة</span>
-        <button class="add-btn" id="sendBtn">إرسال للمتجر (+)</button>
+        <input type="file" id="pImgFile" accept="image/*">
+        <p id="status">جاهز</p>
+        <button class="add-btn" id="sendBtn">رفع للقسم المختار</button>
     </div>
+
+    <h3 style="margin-top: 20px;">إدارة المنشورات 🛠️</h3>
+    <div id="admin-list" style="max-width: 400px; margin: auto;"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw",
@@ -44,38 +46,33 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        document.getElementById("pImgFile").onchange = (e) => {
-            if (e.target.files.length > 0) document.getElementById("status").innerText = "تم اختيار الصورة ✅";
-        };
-
         document.getElementById("sendBtn").onclick = async () => {
             const price = document.getElementById("pPrice").value;
             const file = document.getElementById("pImgFile").files[0];
-            const status = document.getElementById("status");
+            const cat = document.getElementById("pCategory").value;
+            if (!price || !file) return alert("أكمل البيانات");
 
-            if (!price || !file) return alert("اكمل البيانات!");
-
-            status.innerText = "جاري الرفع... ⏳";
-            
+            document.getElementById("status").innerText = "جاري الرفع...";
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async (e) => {
-                try {
-                    await addDoc(collection(db, "products"), {
-                        price: price,
-                        category: document.getElementById("pCategory").value,
-                        img: e.target.result,
-                        date: new Date()
-                    });
-                    alert("تم الإضافة! الصور هسة تطلع بالموقع");
-                    document.getElementById("pPrice").value = "";
-                    document.getElementById("pImgFile").value = "";
-                    status.innerText = "لم يتم اختيار صورة";
-                } catch (err) {
-                    alert("خطأ بالرفع");
-                }
+                await addDoc(collection(db, "products"), { price, category: cat, img: e.target.result, date: new Date() });
+                alert("تم الرفع بنجاح!");
+                location.reload();
             };
         };
+
+        onSnapshot(query(collection(db, "products"), orderBy("date", "desc")), (snapshot) => {
+            const list = document.getElementById("admin-list");
+            list.innerHTML = "";
+            snapshot.forEach((pDoc) => {
+                const item = pDoc.data();
+                list.innerHTML += `<div class="admin-card"><img src="${item.img}"><span>${item.price} - ${item.category}</span>
+                <button onclick="deleteItem('${pDoc.id}')" style="background:red; color:white; border:none; padding:5px; border-radius:5px; cursor:pointer;">حذف</button></div>`;
+            });
+        });
+
+        window.deleteItem = async (id) => { if(confirm("حذف؟")) await deleteDoc(doc(db, "products", id)); };
     </script>
 </body>
 </html>
