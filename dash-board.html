@@ -2,13 +2,87 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم - إضافة منتجات</title>
-    </head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - متجر جنات</title>
+    
+    <style>
+        /* تصميم الصفحة - يرجع لك الشكل الاحترافي */
+        body {
+            background-color: #1a1a2e;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .admin-container {
+            background: #16213e;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            border: 1px solid #e94560;
+            margin-bottom: 30px;
+        }
+        h2, h3 { color: #e94560; margin-bottom: 20px; }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input, select { background: #0f3460; color: white; border: 1px solid #1a1a2e; }
+        button {
+            background-color: #e94560;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #c62842; }
+        
+        /* تنسيق قائمة المنشورات المعدلة */
+        #admin-list {
+            width: 100%;
+            max-width: 500px;
+        }
+        .admin-card {
+            background: #16213e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-right: 4px solid #e94560;
+        }
+        .admin-card img {
+            width: 55px;
+            height: 55px;
+            border-radius: 5px;
+            object-fit: cover;
+        }
+        .card-info { flex-grow: 1; margin-right: 15px; text-align: right; }
+        .btn-delete {
+            background: #ff4d4d;
+            width: auto;
+            padding: 5px 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
 <body>
 
     <div class="admin-container">
         <h2>🛍️ إضافة منتج جديد</h2>
-        <input type="number" id="price-input" placeholder="السعر">
+        <input type="number" id="price-input" placeholder="السعر (دينار عراقي)">
         <select id="category-select">
             <option value="medal">قسم الميداليات</option>
             <option value="acs">قسم الإكسسوارات</option>
@@ -19,11 +93,15 @@
         <button id="upload-btn">رفع للقسم المختار</button>
     </div>
 
+    <h3>🛠️ إدارة المنشورات</h3>
+    <div id="admin-list">
+        </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ضع هنا Firebase Config الخاص بك (الموجود في صورك السابقة)
+        // إعدادات الفايربيس الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSy...", 
             authDomain: "janat-shop.firebaseapp.com",
@@ -36,7 +114,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 1. دالة ضغط الصور (لحل مشكلة الحجم) ---
+        // --- 1. دالة ضغط الصورة (مهمة جداً لموبايلك التكنو) ---
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -45,7 +123,7 @@
                 img.src = event.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // تصغير العرض لتقليل الحجم
+                    const MAX_WIDTH = 700; 
                     let width = img.width;
                     let height = img.height;
 
@@ -53,51 +131,69 @@
                         height *= MAX_WIDTH / width;
                         width = MAX_WIDTH;
                     }
-
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-
-                    // تحويل الصورة لـ Base64 مضغوط (جودة 0.6 كافية جداً)
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                     callback(compressedBase64);
                 };
             };
         }
 
-        // --- 2. دالة الرفع عند الضغط على الزر ---
+        // --- 2. دالة الرفع ---
         document.getElementById("upload-btn").onclick = function() {
-            const fileInput = document.getElementById("file-input");
-            const file = fileInput.files[0];
+            const file = document.getElementById("file-input").files[0];
             const price = document.getElementById("price-input").value;
             const category = document.getElementById("category-select").value;
 
             if (!file || !price) {
-                alert("يرجى ملء كافة الحقول واختيار صورة");
+                alert("يرجى ملء الحقول واختيار صورة");
                 return;
             }
 
-            console.log("جاري معالجة الصورة...");
-
-            // استدعاء الضغط أولاً
             compressImage(file, async (compressedBase64) => {
                 try {
-                    // الرفع للفايربيس باستخدام النسخة المضغوطة
                     await addDoc(collection(db, "products"), {
-                        img: compressedBase64, 
+                        img: compressedBase64,
                         price: price,
                         category: category,
                         timestamp: serverTimestamp()
                     });
-
                     alert("تم الرفع بنجاح!");
-                    location.reload(); 
-                } catch (error) {
-                    console.error("Error adding document: ", error);
-                    alert("فشل الرفع: " + error.message);
+                    document.getElementById("price-input").value = "";
+                    document.getElementById("file-input").value = "";
+                } catch (e) {
+                    alert("خطأ بالرفع: " + e.message);
                 }
             });
+        };
+
+        // --- 3. عرض المنشورات مع إمكانية الحذف (Live) ---
+        const q = query(collection(db, "products"), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const list = document.getElementById("admin-list");
+            list.innerHTML = "";
+            snapshot.forEach((docSnap) => {
+                const item = docSnap.data();
+                list.innerHTML += `
+                    <div class="admin-card">
+                        <img src="${item.img}">
+                        <div class="card-info">
+                            <div>${item.price} دينار</div>
+                            <small style="color:#ccc">${item.category}</small>
+                        </div>
+                        <button class="btn-delete" onclick="deleteItem('${docSnap.id}')">حذف</button>
+                    </div>
+                `;
+            });
+        });
+
+        // --- 4. دالة الحذف ---
+        window.deleteItem = async (id) => {
+            if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+                await deleteDoc(doc(db, "products", id));
+            }
         };
     </script>
 </body>
