@@ -11,7 +11,7 @@
   </head>
   <body>
     <header>
-      <img src="img/logo.png" alt="(QJN)شعار المتجر" class="logo" />
+      <img src="img/logo.png" alt="شعار المتجر" class="logo" />
       <nav class="navbar">
         <ul>
           <li><a href="#home">الرئيسية</a></li>
@@ -28,35 +28,17 @@
         <div class="name"><h2>انا جنات</h2></div>
         <div class="job"><h1>للاعمال اليدوية</h1></div>
       </div>
-      <img src="img/home img.png" alt="صورة قسم الواجهة الرئيسية" class="home-img" />
-    </section>
-
-    <section class="about-me" id="about-me">
-      <div class="about-me-title">
-        <p class="title1">من انا</p>
-        <p class="title2">
-          انا جنات للاعمال اليدوية بالخرز لدي خبرة طويلة في صناعة الحقائب والاكسسوارات ومداليات الحقائب والمفاتيح واستخدم ارقى انواع الخرز.
-        </p>
-      </div>
-      <img src="img/about me.jpg" alt="صورة قسم من انا" class="about-me-img" />
+      <img src="img/home img.png" class="home-img" />
     </section>
 
     <section class="items" id="items">
-      <div class="items-title"><h1>منتجاتنا</h1></div>
+      <div class="items-title"><h1>منتجاتنا المضافة حديثاً</h1></div>
       
       <div id="products-grid" class="items-home-img"></div>
 
       <div class="note-item">
         <h1 class="note-item1">ملاحظة:</h1>
         <h2 class="note-item2">ننفذ اي موديل حسب الطلب</h2>
-      </div>
-    </section>
-
-    <section class="contact-me" id="contact-me">
-      <h1 class="contact-title">تواصل معنا:</h1>
-      <div class="whatsapp">
-        <a href="https://wa.me/9647806508181"><img src="img/programs logo.jpeg" alt="شعار واتساب" /></a>
-        <a href="https://wa.me/9647806508181">تواصل عبر الواتساب</a>
       </div>
     </section>
 
@@ -86,9 +68,9 @@
         snapshot.forEach((doc) => {
           const item = doc.data();
           productsContainer.innerHTML += `
-            <div class="product-card">
+            <div class="item-card">
               <img src="${item.img}" style="width: 100%; border-radius: 10px; height: 200px; object-fit: cover;">
-              <h3>السعر: ${item.price} د.ع</h3>
+              <p>السعر: ${item.price} د.ع</p>
             </div>
           `;
         });
