@@ -68,21 +68,23 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
+      // 1. إعدادات قاعدة البيانات (تأكد إنها نفس اللي عندك)
       const q = query(
         collection(db, "products"),
-        where("category", "==", "home"),
+        where("category", "==", "medal"),
       );
-      // لازم الكود يبدأ بـ onSnapshot حتى يراقب التغييرات
+      const container = document.getElementById("medal-container");
+
       onSnapshot(q, (snapshot) => {
-        const container = document.getElementById("bags-container");
         container.innerHTML = "";
         snapshot.forEach((doc) => {
           const item = doc.data();
           container.innerHTML += `
-            <div class="sell-card">
+            <div class="sell-card-medal">
                 <img src="${item.img}">
-                <p class="price">السعر: ${item.price} دينار عراقي</p>
-            </div>`;
+                <p>السعر: ${item.price}</p>
+            </div>
+        `;
         });
       });
     </script>

@@ -67,12 +67,19 @@
         where("category", "==", "acs"),
       );
       const container = document.getElementById("acs-container");
-      // الكلاس داخل الـ innerHTML يكون: sell-card-acs
-      container.innerHTML += `
-    <div class="sell-card-acs">
-        <img src="${item.img}">
-        <p class="price">السعر: ${item.price} دينار عراقي</p>
-    </div>`;
+
+      onSnapshot(q, (snapshot) => {
+        container.innerHTML = "";
+        snapshot.forEach((doc) => {
+          const item = doc.data(); // هذا السطر ضروري لجلب البيانات
+          container.innerHTML += `
+            <div class="sell-card-acs">
+                <img src="${item.img}">
+                <p>السعر: ${item.price}</p>
+            </div>
+        `;
+        });
+      });
     </script>
   </body>
 </html>

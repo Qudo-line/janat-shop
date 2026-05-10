@@ -67,21 +67,43 @@
     </section>
     <div id="medal-container" class="medal-section"></div>
     <script type="module">
-          import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-          import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-          const firebaseConfig = { apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw", authDomain: "janat-shop.firebaseapp.com", projectId: "janat-shop", storageBucket: "janat-shop.firebasestorage.app", messagingSenderId: "940262782144", appId: "1:940262782144:web:f0ef11cb908d212795e925" };
-          const app = initializeApp(firebaseConfig);
-          const db = getFirestore(app);
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        onSnapshot,
+        query,
+        where,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyB1tLfOZFokj2yBNM_ILcIj5VcTJf1X-Nw",
+        authDomain: "janat-shop.firebaseapp.com",
+        projectId: "janat-shop",
+        storageBucket: "janat-shop.firebasestorage.app",
+        messagingSenderId: "940262782144",
+        appId: "1:940262782144:web:f0ef11cb908d212795e925",
+      };
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
 
-      // نفس الكود الفوق، فقط غير السطرين:
-      const q = query(collection(db, "products"), where("category", "==", "medal"));
+      const q = query(
+        collection(db, "products"),
+        where("category", "==", "medal"),
+      );
       const container = document.getElementById("medal-container");
-      // الكلاس داخل الـ innerHTML يكون: sell-card-medal
-              container.innerHTML += `
-    <div class="sell-card-medal">
-        <img src="${item.img}">
-        <p class="price">السعر: ${item.price} دينار عراقي</p>
-    </div>`;
+
+      onSnapshot(q, (snapshot) => {
+        container.innerHTML = "";
+        snapshot.forEach((doc) => {
+          const item = doc.data();
+          container.innerHTML += `
+            <div class="sell-card-medal">
+                <img src="${item.img}">
+                <p>السعر: ${item.price}</p>
+            </div>
+        `;
+        });
+      });
     </script>
   </body>
 </html>
