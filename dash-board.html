@@ -3,32 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - متجر جنات</title>
-    
+    <title>لوحة التحكم - تسجيل الدخول</title>
     <style>
-        /* تصميم الصفحة - يرجع لك الشكل الاحترافي */
         body {
             background-color: #1a1a2e;
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
             margin: 0;
         }
+        /* تصميم بوابة الرمز */
+        #login-screen {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #e94560;
+            margin-top: 50px;
+        }
+        /* إخفاء محتوى الإدارة في البداية */
+        #admin-content { display: none; width: 100%; max-width: 500px; }
+
         .admin-container {
             background: #16213e;
             padding: 25px;
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            width: 90%;
-            max-width: 450px;
+            width: 100%;
             text-align: center;
             border: 1px solid #e94560;
             margin-bottom: 30px;
         }
-        h2, h3 { color: #e94560; margin-bottom: 20px; }
         input, select, button {
             width: 100%;
             padding: 12px;
@@ -36,23 +43,9 @@
             border-radius: 8px;
             border: none;
             font-size: 16px;
-            box-sizing: border-box;
         }
         input, select { background: #0f3460; color: white; border: 1px solid #1a1a2e; }
-        button {
-            background-color: #e94560;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover { background-color: #c62842; }
-        
-        /* تنسيق قائمة المنشورات المعدلة */
-        #admin-list {
-            width: 100%;
-            max-width: 500px;
-        }
+        button { background-color: #e94560; color: white; font-weight: bold; cursor: pointer; }
         .admin-card {
             background: #16213e;
             display: flex;
@@ -63,45 +56,42 @@
             border-radius: 10px;
             border-right: 4px solid #e94560;
         }
-        .admin-card img {
-            width: 55px;
-            height: 55px;
-            border-radius: 5px;
-            object-fit: cover;
-        }
-        .card-info { flex-grow: 1; margin-right: 15px; text-align: right; }
-        .btn-delete {
-            background: #ff4d4d;
-            width: auto;
-            padding: 5px 15px;
-            font-size: 14px;
-        }
+        .admin-card img { width: 60px; height: 60px; border-radius: 5px; object-fit: cover; }
+        .btn-edit { background: #f1c40f; color: #000; width: auto; padding: 5px 10px; font-size: 13px; }
+        .btn-delete { background: #ff4d4d; width: auto; padding: 5px 10px; font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <div class="admin-container">
-        <h2>🛍️ إضافة منتج جديد</h2>
-        <input type="number" id="price-input" placeholder="السعر (دينار عراقي)">
-        <select id="category-select">
-            <option value="medal">قسم الميداليات</option>
-            <option value="acs">قسم الإكسسوارات</option>
-            <option value="bags">قسم الحقائب</option>
-            <option value="home-item">قسم المنزل</option>
-        </select>
-        <input type="file" id="file-input" accept="image/*">
-        <button id="upload-btn">رفع للقسم المختار</button>
+    <div id="login-screen">
+        <h2>🔒 تسجيل دخول الإدمن</h2>
+        <input type="password" id="admin-pass" placeholder="أدخل الرمز السري">
+        <button onclick="checkPassword()">دخول</button>
     </div>
 
-    <h3>🛠️ إدارة المنشورات</h3>
-    <div id="admin-list">
+    <div id="admin-content">
+        <div class="admin-container">
+            <h2>🛍️ إضافة منتج جديد</h2>
+            <input type="number" id="price-input" placeholder="السعر">
+            <select id="category-select">
+                <option value="medal">قسم الميداليات</option>
+                <option value="acs">قسم الإكسسوارات</option>
+                <option value="bags">قسم الحقائب</option>
+                <option value="home-item">قسم المنزل</option>
+            </select>
+            <input type="file" id="file-input" accept="image/*">
+            <button id="upload-btn">رفع للمتجر</button>
         </div>
+
+        <h3>🛠️ إدارة المنشورات</h3>
+        <div id="admin-list"></div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // إعدادات الفايربيس الخاصة بك
+        // الـ Config مالتك (لا تغيره)
         const firebaseConfig = {
             apiKey: "AIzaSy...", 
             authDomain: "janat-shop.firebaseapp.com",
@@ -114,86 +104,90 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 1. دالة ضغط الصورة (مهمة جداً لموبايلك التكنو) ---
+        // --- وظيفة التحقق من الرمز ---
+        window.checkPassword = function() {
+            const pass = document.getElementById("admin-pass").value;
+            if (pass === "2468") { // غير الرمز "1234" لأي شي تريده
+                document.getElementById("login-screen").style.display = "none";
+                document.getElementById("admin-content").style.display = "block";
+            } else {
+                alert("الرمز خطأ! أنت مو قسور 😉");
+            }
+        }
+
+        // --- دالة ضغط الصورة ---
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = (event) => {
+            reader.onload = (e) => {
                 const img = new Image();
-                img.src = event.target.result;
+                img.src = e.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 700; 
+                    const MAX_WIDTH = 800;
                     let width = img.width;
                     let height = img.height;
-
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
+                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-                    callback(compressedBase64);
+                    callback(canvas.toDataURL('image/jpeg', 0.7));
                 };
             };
         }
 
-        // --- 2. دالة الرفع ---
+        // --- دالة الرفع ---
         document.getElementById("upload-btn").onclick = function() {
             const file = document.getElementById("file-input").files[0];
             const price = document.getElementById("price-input").value;
             const category = document.getElementById("category-select").value;
-
-            if (!file || !price) {
-                alert("يرجى ملء الحقول واختيار صورة");
-                return;
-            }
-
-            compressImage(file, async (compressedBase64) => {
-                try {
-                    await addDoc(collection(db, "products"), {
-                        img: compressedBase64,
-                        price: price,
-                        category: category,
-                        timestamp: serverTimestamp()
-                    });
-                    alert("تم الرفع بنجاح!");
-                    document.getElementById("price-input").value = "";
-                    document.getElementById("file-input").value = "";
-                } catch (e) {
-                    alert("خطأ بالرفع: " + e.message);
-                }
+            if (!file || !price) return alert("املأ الحقول أولاً");
+            compressImage(file, async (base64) => {
+                await addDoc(collection(db, "products"), {
+                    img: base64, price: price, category: category, timestamp: serverTimestamp()
+                });
+                alert("تمت الإضافة!");
             });
         };
 
-        // --- 3. عرض المنشورات مع إمكانية الحذف (Live) ---
+        // --- عرض المنتجات ---
         const q = query(collection(db, "products"), orderBy("timestamp", "desc"));
-        onSnapshot(q, (snapshot) => {
+        onSnapshot(q, (snap) => {
             const list = document.getElementById("admin-list");
             list.innerHTML = "";
-            snapshot.forEach((docSnap) => {
+            snap.forEach((docSnap) => {
                 const item = docSnap.data();
+                const id = docSnap.id;
                 list.innerHTML += `
                     <div class="admin-card">
-                        <img src="${item.img}">
+                        <img src="${item.img}" onclick="editImage('${id}')">
                         <div class="card-info">
-                            <div>${item.price} دينار</div>
-                            <small style="color:#ccc">${item.category}</small>
+                            <b>${item.price} د.ع</b><br>
+                            <small>${item.category}</small>
                         </div>
-                        <button class="btn-delete" onclick="deleteItem('${docSnap.id}')">حذف</button>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-edit" onclick="editPrice('${id}', '${item.price}')">تعديل</button>
+                            <button class="btn-delete" onclick="deleteItem('${id}')">حذف</button>
+                        </div>
                     </div>
                 `;
             });
         });
 
-        // --- 4. دالة الحذف ---
-        window.deleteItem = async (id) => {
-            if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-                await deleteDoc(doc(db, "products", id));
-            }
+        window.deleteItem = async (id) => { if (confirm("حذف؟")) await deleteDoc(doc(db, "products", id)); };
+        window.editPrice = async (id, old) => { 
+            const n = prompt("السعر الجديد:", old); 
+            if (n) await updateDoc(doc(db, "products", id), { price: n }); 
+        };
+        window.editImage = (id) => {
+            const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*';
+            i.onchange = (e) => {
+                compressImage(e.target.files[0], async (b) => {
+                    await updateDoc(doc(db, "products", id), { img: b });
+                    alert("تم التحديث!");
+                });
+            };
+            i.click();
         };
     </script>
 </body>
